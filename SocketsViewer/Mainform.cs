@@ -4,6 +4,7 @@ using System;
 using System.Collections.Generic;
 using System.ComponentModel;
 using System.Data;
+using System.Diagnostics;
 using System.Drawing;
 using System.Text;
 using System.Threading;
@@ -29,61 +30,34 @@ namespace SocketsViewer
             {
                 while (true)
                 {
-                    _rowInfos.Clear();
+                    SystemInfo systemInfo = new SystemInfo();
 
-                    var tps = NetProcessAPI.GetAllTcpConnections();
+                    var cpu = $"核心：{systemInfo.ProcessorCount}个 使用率：{systemInfo.CpuLoad.ToString("0.00")}%";
 
-                    var ups = NetProcessAPI.GetAllUdpConnections();
+                    var mem = $"{StringExtention.ToFormatString(systemInfo.MemoryAvailable)}/{StringExtention.ToFormatString(systemInfo.PhysicalMemory)}";
 
-                    foreach (var p in tps)
+                    var sb = new StringBuilder();
+
+                    var hds = systemInfo.GetLogicalDrives();
+
+                    foreach (var item in hds)
                     {
-                        _rowInfos.Add(new RowInfo()
-                        {
-
-                            PIcon = ProcessAPI.GetIcon(p.owningPid, true),
-                            PName = ProcessAPI.GetProcessNameByPID(p.owningPid),
-                            PID = p.owningPid.ToString(),
-                            Type = "TCP",
-                            LocalAddress = p.LocalAddress.ToString(),
-                            LocalPort = p.LocalPort.ToString(),
-                            RemoteAddress = p.RemoteAddress.ToString(),
-                            RemotePort = p.RemotePort.ToString()
-                        });
+                        sb.Append($"{item.Name}盘 {StringExtention.ToFormatString(item.FreeSpace)}/{StringExtention.ToFormatString(item.Size)} \t");
                     }
 
-                    foreach (var p in ups)
+                    this.Invoke(new Action(() =>
                     {
-                        _rowInfos.Add(new RowInfo()
-                        {
-                            PIcon = ProcessAPI.GetIcon(p.owningPid, true),
-                            PName = ProcessAPI.GetProcessNameByPID(p.owningPid),
-                            PID = p.owningPid.ToString(),
-                            Type = "UDP",
-                            LocalAddress = p.LocalAddress.ToString(),
-                            LocalPort = p.LocalPort.ToString(),
-                            RemoteAddress = "",
-                            RemotePort = ""
-                        });
-                    }
+                        label8.Text = cpu;
+                        label9.Text = mem;
+                        label10.Text = sb.ToString();
+                    }));
 
                     Thread.Sleep(1000);
-
-                    dataGridView1.Invoke(new Action(() =>
-                    {
-
-
-                    }));
-                    break;
                 }
             })));
 
             td.IsBackground = true;
-            //td.Start();
-
-
-
-
-
+            td.Start();
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -199,6 +173,38 @@ namespace SocketsViewer
         private void checkBox1_CheckedChanged(object sender, EventArgs e)
         {
             timer1.Enabled = checkBox1.Checked;
+        }
+
+        private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
+        {
+            try
+            {
+                var pName = dataGridView1.Rows[e.RowIndex].Cells[2].Value.ToString();
+
+                SystemInfo systemInfo = new SystemInfo();
+
+                var list = systemInfo.GetProcessInfo(pName);
+
+                StringBuilder sb = new StringBuilder();
+
+                sb.AppendLine($"pid：{list[0].Id}\r\n");
+
+                sb.AppendLine($"pName：{pName}\r\n");
+
+                sb.AppendLine($"live：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
+
+                sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
+
+                sb.AppendLine($"path：{list[0].FileName}\r\n");
+
+                label12.Text = sb.ToString();
+            }
+            catch { }
+        }
+
+        private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
+        {
+            Process.Start("https://github.com/yswenli/SocketsViewer");
         }
     }
 }
