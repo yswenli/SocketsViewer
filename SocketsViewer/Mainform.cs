@@ -28,11 +28,11 @@ namespace SocketsViewer
         {
             var td = new Thread(new ThreadStart(new Action(() =>
             {
-                while (true)
+                while (!this.IsDisposed)
                 {
                     SystemInfo systemInfo = new SystemInfo();
 
-                    var cpu = $"核心：{systemInfo.ProcessorCount}个 使用率：{systemInfo.CpuLoad.ToString("0.00")}%";
+                    var cpu = $"核心数：{systemInfo.ProcessorCount}个 使用率：{systemInfo.CpuLoad}%";
 
                     var mem = $"{StringExtention.ToFormatString(systemInfo.MemoryAvailable)}/{StringExtention.ToFormatString(systemInfo.PhysicalMemory)}";
 
@@ -45,12 +45,16 @@ namespace SocketsViewer
                         sb.Append($"{item.Name}盘 {StringExtention.ToFormatString(item.FreeSpace)}/{StringExtention.ToFormatString(item.Size)} \t");
                     }
 
-                    this.Invoke(new Action(() =>
+                    try
                     {
-                        label8.Text = cpu;
-                        label9.Text = mem;
-                        label10.Text = sb.ToString();
-                    }));
+                        this.Invoke(new Action(() =>
+                        {
+                            label8.Text = cpu;
+                            label9.Text = mem;
+                            label10.Text = sb.ToString();
+                        }));
+                    }
+                    catch { }
 
                     Thread.Sleep(1000);
                 }
@@ -62,6 +66,8 @@ namespace SocketsViewer
 
         private void button1_Click(object sender, EventArgs e)
         {
+            button1.Enabled = false;
+
             var pName = textBox1.Text;
 
             var lIp = textBox2.Text;
@@ -71,12 +77,13 @@ namespace SocketsViewer
             var rIp = textBox4.Text;
 
             var rPort = textBox5.Text;
-
-            dataGridView1.Rows.Clear();
-
+           
 
             var tps = NetProcessAPI.GetAllTcpConnections();
 
+            var ups = NetProcessAPI.GetAllUdpConnections();
+
+            dataGridView1.Rows.Clear();
 
             foreach (var p in tps)
             {
@@ -104,10 +111,10 @@ namespace SocketsViewer
                 dataGridView1.Rows.Add(new object[] { p.owningPid.ToString(), ProcessAPI.GetIcon(p.owningPid, true), ProcessAPI.GetProcessNameByPID(p.owningPid), "TCP", p.LocalAddress.ToString(), p.LocalPort.ToString(), p.RemoteAddress.ToString(), p.RemotePort.ToString() });
             }
 
-            var ups = NetProcessAPI.GetAllUdpConnections();
 
             if (!string.IsNullOrEmpty(rIp) || !string.IsNullOrEmpty(rPort))
             {
+                button1.Enabled = true;
                 return;
             }
 
@@ -134,7 +141,10 @@ namespace SocketsViewer
                 DataGridViewRow r = this.dataGridView1.Rows[i];
                 r.HeaderCell.Value = string.Format("{0}", i + 1);
             }
+
             this.dataGridView1.Refresh();
+
+            button1.Enabled = true;
         }
 
         private void textBox1_KeyUp(object sender, KeyEventArgs e)
@@ -191,7 +201,7 @@ namespace SocketsViewer
 
                 sb.AppendLine($"pName：{pName}\r\n");
 
-                sb.AppendLine($"live：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
+                sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
 
                 sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
 

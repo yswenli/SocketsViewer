@@ -3,6 +3,7 @@ using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
+using System.Linq;
 using System.Management;
 using System.Runtime.InteropServices;
 using System.Text;
@@ -14,8 +15,10 @@ namespace SocketsViewer.Libs
     ///  
     public class SystemInfo
     {
+
+        ManagementObjectSearcher _cpuTimeSearch = new ManagementObjectSearcher("select * from Win32_PerfFormattedData_PerfOS_Processor");
+
         private int m_ProcessorCount = 0;   //CPU个数 
-        private PerformanceCounter pcCpuLoad;   //CPU计数器 
         private long m_PhysicalMemory = 0;   //物理内存 
 
         private const int GW_HWNDFIRST = 0;
@@ -47,11 +50,6 @@ namespace SocketsViewer.Libs
         ///  
         public SystemInfo()
         {
-            //初始化CPU计数器 
-            pcCpuLoad = new PerformanceCounter("Processor", "% Processor Time", "_Total");
-            pcCpuLoad.MachineName = ".";
-            pcCpuLoad.NextValue();
-
             //CPU个数 
             m_ProcessorCount = Environment.ProcessorCount;
 
@@ -85,11 +83,28 @@ namespace SocketsViewer.Libs
         ///  
         /// 获取CPU占用率 
         ///  
-        public float CpuLoad
+        public string CpuLoad
         {
             get
             {
-                return pcCpuLoad.NextValue();
+                //初始化CPU计数器 
+                var cpuTimes = _cpuTimeSearch.Get()
+                    .Cast<ManagementObject>()
+                    .Select(mo => new
+                    {
+                        Name = mo["Name"],
+                        Usage = mo["PercentProcessorTime"]
+                    }
+                    ).ToList();
+
+                if (cpuTimes != null && cpuTimes.Any())
+                {
+                    return cpuTimes.Where(b => b.Name.ToString() == "_Total").First().Usage.ToString();
+                }
+                else
+                {
+                    return "0.00";
+                }
             }
         }
         #endregion
