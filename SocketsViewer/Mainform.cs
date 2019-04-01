@@ -17,15 +17,17 @@ namespace SocketsViewer
 
         List<RowInfo> _rowInfos = new List<RowInfo>();
 
+        TransferHelper _transferHelper;
+
         public Mainform()
         {
             InitializeComponent();
         }
 
-        public delegate void Action();
-
         private void Mainform_Load(object sender, EventArgs e)
         {
+            _transferHelper = new TransferHelper();
+
             var td = new Thread(new ThreadStart(new Action(() =>
             {
                 while (!this.IsDisposed)
@@ -62,6 +64,10 @@ namespace SocketsViewer
 
             td.IsBackground = true;
             td.Start();
+
+
+            NetMonitor();
+
         }
 
         private void button1_Click(object sender, EventArgs e)
@@ -77,7 +83,7 @@ namespace SocketsViewer
             var rIp = textBox4.Text;
 
             var rPort = textBox5.Text;
-           
+
 
             var tps = NetProcessAPI.GetAllTcpConnections();
 
@@ -185,36 +191,108 @@ namespace SocketsViewer
             timer1.Enabled = checkBox1.Checked;
         }
 
+        #region choose
+
+        bool _choosed = false;
+
+        string _chooseName = string.Empty;
+
+        string _chooseIpPort = string.Empty;
+
         private void dataGridView1_CellClick(object sender, DataGridViewCellEventArgs e)
         {
             try
             {
-                var pName = dataGridView1.Rows[e.RowIndex].Cells[2].Value.ToString();
+                _chooseName = dataGridView1.Rows[e.RowIndex].Cells[2].Value.ToString();
 
-                SystemInfo systemInfo = new SystemInfo();
+                _chooseIpPort = dataGridView1.Rows[e.RowIndex].Cells[4].Value.ToString() + ":" + dataGridView1.Rows[e.RowIndex].Cells[5].Value.ToString();
 
-                var list = systemInfo.GetProcessInfo(pName);
-
-                StringBuilder sb = new StringBuilder();
-
-                sb.AppendLine($"pid：{list[0].Id}\r\n");
-
-                sb.AppendLine($"pName：{pName}\r\n");
-
-                sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
-
-                sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
-
-                sb.AppendLine($"path：{list[0].FileName}\r\n");
-
-                label12.Text = sb.ToString();
+                _choosed = true;
             }
             catch { }
         }
+
+        private void NetMonitor()
+        {
+            Thread td = new Thread(new ThreadStart(() =>
+            {
+                while (true)
+                {
+                    if (_choosed)
+                    {
+                        var speed = 0L;
+
+                        if (_transferHelper.Speed.ContainsKey(_chooseIpPort))
+                        {
+                            speed = _transferHelper.Speed[_chooseIpPort];
+                        }
+
+                        var speedStr = StringExtention.ToFormatString(speed);
+
+                        var total = 0L;
+
+                        if (_transferHelper.Total.ContainsKey(_chooseIpPort))
+                        {
+                            total = _transferHelper.Total[_chooseIpPort];
+                        }
+
+                        var totalStr = StringExtention.ToFormatString(total);
+
+                        SystemInfo systemInfo = new SystemInfo();
+
+                        var list = systemInfo.GetProcessInfo(_chooseName);
+
+                        StringBuilder sb = new StringBuilder();
+
+                        sb.AppendLine($"pid：{list[0].Id}\r\n");
+
+                        sb.AppendLine($"pName：{_chooseName}\r\n");
+
+                        sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
+
+                        sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
+
+                        sb.AppendLine($"path：{list[0].FileName}\r\n");
+
+                        sb.AppendLine($"net：{speedStr}/{totalStr}");
+
+                        try
+                        {
+                            this.Invoke(new Action(() =>
+                            {
+                                label12.Text = sb.ToString();
+                            }));
+                        }
+                        catch { }
+                    }
+                    Thread.Sleep(100);
+                }
+            }));
+
+            td.IsBackground = true;
+            td.Start();
+        }
+
+        #endregion
+
+
 
         private void linkLabel1_LinkClicked(object sender, LinkLabelLinkClickedEventArgs e)
         {
             Process.Start("https://github.com/yswenli/SocketsViewer");
         }
+
+        private void 网络监控日志ToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            new LogForm().ShowDialog(this);
+        }
+
+
+        private void Mainform_FormClosed(object sender, FormClosedEventArgs e)
+        {
+            _transferHelper.Dispose();
+        }
+
+        
     }
 }
