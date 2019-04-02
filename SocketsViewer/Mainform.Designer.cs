@@ -96,7 +96,7 @@
             this.dataGridView1.RowHeadersWidth = 55;
             this.dataGridView1.RowTemplate.Height = 23;
             this.dataGridView1.ShowRowErrors = false;
-            this.dataGridView1.Size = new System.Drawing.Size(850, 337);
+            this.dataGridView1.Size = new System.Drawing.Size(850, 324);
             this.dataGridView1.TabIndex = 2;
             this.dataGridView1.CellClick += new System.Windows.Forms.DataGridViewCellEventHandler(this.dataGridView1_CellClick);
             // 
@@ -294,9 +294,9 @@
             this.groupBox2.Controls.Add(this.label8);
             this.groupBox2.Controls.Add(this.label7);
             this.groupBox2.Controls.Add(this.label6);
-            this.groupBox2.Location = new System.Drawing.Point(12, 584);
+            this.groupBox2.Location = new System.Drawing.Point(12, 606);
             this.groupBox2.Name = "groupBox2";
-            this.groupBox2.Size = new System.Drawing.Size(846, 133);
+            this.groupBox2.Size = new System.Drawing.Size(846, 111);
             this.groupBox2.TabIndex = 4;
             this.groupBox2.TabStop = false;
             this.groupBox2.Text = "系统信息";
@@ -314,7 +314,7 @@
             // 
             this.label10.Location = new System.Drawing.Point(53, 62);
             this.label10.Name = "label10";
-            this.label10.Size = new System.Drawing.Size(787, 50);
+            this.label10.Size = new System.Drawing.Size(787, 38);
             this.label10.TabIndex = 0;
             this.label10.Text = "磁盘";
             // 
@@ -359,9 +359,9 @@
             this.groupBox3.Anchor = ((System.Windows.Forms.AnchorStyles)(((System.Windows.Forms.AnchorStyles.Bottom | System.Windows.Forms.AnchorStyles.Left) 
             | System.Windows.Forms.AnchorStyles.Right)));
             this.groupBox3.Controls.Add(this.label12);
-            this.groupBox3.Location = new System.Drawing.Point(12, 437);
+            this.groupBox3.Location = new System.Drawing.Point(12, 424);
             this.groupBox3.Name = "groupBox3";
-            this.groupBox3.Size = new System.Drawing.Size(846, 141);
+            this.groupBox3.Size = new System.Drawing.Size(846, 176);
             this.groupBox3.TabIndex = 5;
             this.groupBox3.TabStop = false;
             // 
@@ -372,7 +372,7 @@
             | System.Windows.Forms.AnchorStyles.Right)));
             this.label12.Location = new System.Drawing.Point(10, 17);
             this.label12.Name = "label12";
-            this.label12.Size = new System.Drawing.Size(821, 110);
+            this.label12.Size = new System.Drawing.Size(821, 145);
             this.label12.TabIndex = 0;
             // 
             // linkLabel1

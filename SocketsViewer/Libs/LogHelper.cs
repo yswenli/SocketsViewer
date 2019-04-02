@@ -16,10 +16,12 @@
 *描    述：
 *****************************************************************************/
 using System;
+using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.IO;
 using System.Reflection;
 using System.Text;
+using System.Threading;
 
 namespace SocketsViewer.Libs
 {
@@ -27,15 +29,9 @@ namespace SocketsViewer.Libs
     {
         static string _filePath = Path.Combine(Path.GetDirectoryName(Assembly.GetExecutingAssembly().FullName), "Logs");
 
-        static string _fileName = string.Empty;
+        static bool _isClosed = false;
 
-        static FileStream _writeStream;
-
-        static StreamWriter _streamWriter;
-
-        static FileStream _readStream;
-
-        static StreamReader _streamReader;
+        static ConcurrentQueue<string> _logs;
 
         static LogHelper()
         {
@@ -44,28 +40,44 @@ namespace SocketsViewer.Libs
                 Directory.CreateDirectory(_filePath);
             }
 
-            _fileName = Path.Combine(_filePath, $"SocketsViewerLog-{DateTime.Now.ToString("yyyyMMddHHmm")}.log");
+            _logs = new ConcurrentQueue<string>();
 
-            _writeStream = File.Open(_fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite);
 
-            _streamWriter = new StreamWriter(_writeStream);
+            var td = new Thread(new ThreadStart(() =>
+            {
+                while (!_isClosed)
+                {
+                    var fileName = Path.Combine(_filePath, $"SocketsViewerLog-{DateTime.Now.ToString("yyyyMMddHHmm")}.log");
 
-            _readStream = File.Open(_fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite);
-
-            _streamReader = new StreamReader(_readStream);
+                    using (var writeStream = File.Open(fileName, FileMode.OpenOrCreate, FileAccess.Write, FileShare.ReadWrite))
+                    {
+                        using (var streamWriter = new StreamWriter(writeStream))
+                        {
+                            while (!_logs.IsEmpty)
+                            {
+                                if (_logs.TryDequeue(out string msg))
+                                {
+                                    streamWriter.Write($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")} {msg}");
+                                }
+                                else
+                                {
+                                    break;
+                                }
+                            }
+                        }
+                    }
+                    Thread.Sleep(500);
+                }
+            }));
+            td.IsBackground = true;
+            td.Start();
         }
 
 
         public static void WriteLine(string msg)
         {
-            _streamWriter.Write($"{DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss.fff")} {msg}");
+            _logs.Enqueue(msg);
         }
-
-        public static string ReadLine()
-        {
-            return _streamReader.ReadLine();
-        }
-
 
         public static Dictionary<string, string> GetLogList()
         {
@@ -83,46 +95,27 @@ namespace SocketsViewer.Libs
 
         public static string ReadAll(string fileName)
         {
-            StringBuilder sb = new StringBuilder();
-
             using (var fs = File.Open(fileName, FileMode.Open, FileAccess.Read, FileShare.ReadWrite))
             {
-                fs.Position = 0;
+                var bytes = new byte[fs.Length];
 
-                var bytes = new byte[1024];
+                fs.Read(bytes, 0, bytes.Length);
 
-                int count = 0;
-
-                do
+                for (int i = 0; i < bytes.Length; i++)
                 {
-                    count = fs.Read(bytes, 0, bytes.Length);
-
-                    if (count == 0)
+                    if (bytes[i] == 0)
                     {
-                        break;
+                        bytes[i] = 32;
                     }
-                    else
-                    {
-                        fs.Position += count;
-                    }
-                    sb.Append(Encoding.ASCII.GetString(bytes, 0, count));
                 }
-                while (count > 0);
 
+                return Encoding.ASCII.GetString(bytes);
             }
-            return sb.ToString();
         }
 
         public static void Close()
         {
-            try
-            {
-                _streamWriter.Flush();
-                _streamWriter.Close();
-                _streamReader.Close();
-            }
-            catch { }
-
+            _isClosed = true;
         }
     }
 }

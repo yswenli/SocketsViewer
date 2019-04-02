@@ -96,7 +96,7 @@ namespace SocketsViewer.Libs
                 Total[sip] = transfer.Length;
             }
 
-            LogHelper.WriteLine($"{transfer.Protocol}\t{sip}\t{transfer.TargetIP + ":" + transfer.TargetPort}\t{Encoding.ASCII.GetString(transfer.Data)}");
+            LogHelper.WriteLine($"Protocol:{transfer.Protocol}\tSourceIP:{sip}\tTargetIP:{transfer.TargetIP + ":" + transfer.TargetPort}\tData:{string.Join(",", transfer.Data)}\t\r\n");
         }
 
         public void Dispose()

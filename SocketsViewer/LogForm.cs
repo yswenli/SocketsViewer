@@ -18,12 +18,7 @@
 using SocketsViewer.Libs;
 using System;
 using System.Collections.Generic;
-using System.ComponentModel;
-using System.Data;
-using System.Drawing;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+using System.Diagnostics;
 using System.Windows.Forms;
 
 namespace SocketsViewer
@@ -46,17 +41,86 @@ namespace SocketsViewer
             {
                 comboBox1.Items.Add(item.Key);
             }
+            comboBox1.SelectedIndex = 0;
+            comboBox1_SelectedIndexChanged(comboBox1, null);
 
+            //richTextBox1.SelectionBullet = true;
+            //richTextBox1.SelectionBackColor = System.Drawing.Color.Blue;
+            //richTextBox1.SelectionColor = System.Drawing.Color.White;
         }
 
         private void comboBox1_SelectedIndexChanged(object sender, EventArgs e)
         {
+            Stopwatch stopwatch = new Stopwatch();
+            stopwatch.Start();
+
             var key = comboBox1.Items[comboBox1.SelectedIndex].ToString();
 
             if (!string.IsNullOrEmpty(key))
             {
-                textBox1.Text = LogHelper.ReadAll(_logList[key]);
+                richTextBox1.Text = LogHelper.ReadAll(_logList[key]);
+                toolStripStatusLabel1.Text = $"{key}已加载完毕，{richTextBox1.Text.Length}字用时：{stopwatch.ElapsedMilliseconds}ms";
+            }
+            stopwatch.Stop();
+        }
+
+
+        private void textBox1_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.KeyCode == Keys.Enter)
+            {
+                button1_Click(null, null);
             }
         }
+
+
+        int _searchOffset = 0;
+
+        string _searchKey = string.Empty;
+
+        private void button1_Click(object sender, EventArgs e)
+        {
+            var searchKey = textBox1.Text;
+
+            if (!string.IsNullOrEmpty(searchKey))
+            {
+                if (_searchKey != searchKey)
+                {
+                    _searchKey = searchKey;
+                    richTextBox1.Text = richTextBox1.Text;
+                }
+                Search(richTextBox1.Text, searchKey);
+            }
+            else
+            {
+                richTextBox1.Text = richTextBox1.Text;
+            }
+        }
+
+
+        private void Search(string str, string searchKey)
+        {
+            var index = str.IndexOf(searchKey, searchKey.Length + _searchOffset);
+
+            if (_searchOffset == 0 && index == -1)
+            {
+                MessageBox.Show("未能找到内容:" + searchKey);
+                return;
+            }
+
+            _searchOffset = index;
+
+            if (_searchOffset == -1)
+            {
+                _searchOffset = 0;
+                Search(str, searchKey);
+            }
+
+            richTextBox1.Focus();
+            richTextBox1.Select(_searchOffset, searchKey.Length);
+            richTextBox1.ScrollToCaret();
+        }
+
+
     }
 }

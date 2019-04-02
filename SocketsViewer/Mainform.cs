@@ -65,9 +65,7 @@ namespace SocketsViewer
             td.IsBackground = true;
             td.Start();
 
-
             NetMonitor();
-
         }
 
         private void button1_Click(object sender, EventArgs e)
