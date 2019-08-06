@@ -202,9 +202,7 @@ namespace SocketsViewer
             try
             {
                 _chooseName = dataGridView1.Rows[e.RowIndex].Cells[2].Value.ToString();
-
                 _chooseIpPort = dataGridView1.Rows[e.RowIndex].Cells[4].Value.ToString() + ":" + dataGridView1.Rows[e.RowIndex].Cells[5].Value.ToString();
-
                 _choosed = true;
             }
             catch { }
@@ -218,50 +216,59 @@ namespace SocketsViewer
                 {
                     if (_choosed)
                     {
-                        var speed = 0L;
-
-                        if (_transferHelper.Speed.ContainsKey(_chooseIpPort))
-                        {
-                            speed = _transferHelper.Speed[_chooseIpPort];
-                        }
-
-                        var speedStr = StringExtention.ToFormatString(speed);
-
-                        var total = 0L;
-
-                        if (_transferHelper.Total.ContainsKey(_chooseIpPort))
-                        {
-                            total = _transferHelper.Total[_chooseIpPort];
-                        }
-
-                        var totalStr = StringExtention.ToFormatString(total);
-
-                        SystemInfo systemInfo = new SystemInfo();
-
-                        var list = systemInfo.GetProcessInfo(_chooseName);
-
-                        StringBuilder sb = new StringBuilder();
-
-                        sb.AppendLine($"pid：{list[0].Id}\r\n");
-
-                        sb.AppendLine($"pName：{_chooseName}\r\n");
-
-                        sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
-
-                        sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
-
-                        sb.AppendLine($"path：{list[0].FileName}\r\n");
-
-                        sb.AppendLine($"net：{speedStr}/{totalStr}");
-
                         try
                         {
-                            this.Invoke(new Action(() =>
+                            var speed = 0L;
+
+                            if (_transferHelper.Speed.ContainsKey(_chooseIpPort))
                             {
-                                label12.Text = sb.ToString();
-                            }));
+                                speed = _transferHelper.Speed[_chooseIpPort];
+                            }
+
+                            var speedStr = StringExtention.ToFormatString(speed);
+
+                            var total = 0L;
+
+                            if (_transferHelper.Total.ContainsKey(_chooseIpPort))
+                            {
+                                total = _transferHelper.Total[_chooseIpPort];
+                            }
+
+                            var totalStr = StringExtention.ToFormatString(total);
+
+                            SystemInfo systemInfo = new SystemInfo();
+
+                            var list = systemInfo.GetProcessInfo(_chooseName);
+
+                            StringBuilder sb = new StringBuilder();
+
+                            sb.AppendLine($"pid：{list[0].Id}\r\n");
+
+                            sb.AppendLine($"pName：{_chooseName}\r\n");
+
+                            sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
+
+                            sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
+
+                            sb.AppendLine($"path：{list[0].FileName}\r\n");
+
+                            sb.AppendLine($"net：{speedStr}/{totalStr}");
+
+                            try
+                            {
+                                this.Invoke(new Action(() =>
+                                {
+                                    label12.Text = sb.ToString();
+                                }));
+                            }
+                            catch { }
                         }
-                        catch { }
+                        catch (Exception ex)
+                        {
+                            _choosed = false;
+                            MessageBox.Show("当前进程无法被监控,Error:" + ex.Message);
+                        }
+
                     }
                     Thread.Sleep(100);
                 }
@@ -288,9 +295,14 @@ namespace SocketsViewer
 
         private void Mainform_FormClosed(object sender, FormClosedEventArgs e)
         {
-            _transferHelper.Dispose();
+            try
+            {
+                _transferHelper.Dispose();
+            }
+            catch { }
+            GC.Collect(0);
         }
 
-        
+
     }
 }
