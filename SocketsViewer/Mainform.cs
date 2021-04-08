@@ -6,8 +6,10 @@ using System.ComponentModel;
 using System.Data;
 using System.Diagnostics;
 using System.Drawing;
+using System.IO;
 using System.Text;
 using System.Threading;
+using System.Threading.Tasks;
 using System.Windows.Forms;
 
 namespace SocketsViewer
@@ -32,31 +34,39 @@ namespace SocketsViewer
             {
                 while (!this.IsDisposed)
                 {
-                    SystemInfo systemInfo = new SystemInfo();
-
-                    var cpu = $"核心数：{systemInfo.ProcessorCount}个 使用率：{systemInfo.CpuLoad}%";
-
-                    var mem = $"{StringExtention.ToFormatString(systemInfo.MemoryAvailable)}/{StringExtention.ToFormatString(systemInfo.PhysicalMemory)}";
-
-                    var sb = new StringBuilder();
-
-                    var hds = systemInfo.GetLogicalDrives();
-
-                    foreach (var item in hds)
-                    {
-                        sb.Append($"{item.Name}盘 {StringExtention.ToFormatString(item.FreeSpace)}/{StringExtention.ToFormatString(item.Size)} \t");
-                    }
-
                     try
                     {
-                        this.Invoke(new Action(() =>
+                        SystemInfo systemInfo = new SystemInfo();
+
+                        var cpu = $"核心数：{systemInfo.ProcessorCount}个 使用率：{systemInfo.CpuLoad}%";
+
+                        var mem = $"{StringExtention.ToFormatString(systemInfo.MemoryAvailable)}/{StringExtention.ToFormatString(systemInfo.PhysicalMemory)}";
+
+                        var sb = new StringBuilder();
+
+                        var hds = systemInfo.GetLogicalDrives();
+
+                        foreach (var item in hds)
                         {
-                            label8.Text = cpu;
-                            label9.Text = mem;
-                            label10.Text = sb.ToString();
-                        }));
+                            sb.Append($"{item.Name}盘 {StringExtention.ToFormatString(item.FreeSpace)}/{StringExtention.ToFormatString(item.Size)} \t");
+                        }
+
+                        try
+                        {
+                            this.Invoke(new Action(() =>
+                            {
+                                label8.Text = cpu;
+                                label9.Text = mem;
+                                label10.Text = sb.ToString();
+                            }));
+                        }
+                        catch { }
+
                     }
-                    catch { }
+                    catch (Exception ex)
+                    {
+                        break;
+                    }
 
                     Thread.Sleep(1000);
                 }
@@ -74,7 +84,7 @@ namespace SocketsViewer
 
             var pName = textBox1.Text;
 
-            var lIp = textBox2.Text;
+            var lIp = label2.Text;
 
             var lPort = textBox3.Text;
 
@@ -84,17 +94,18 @@ namespace SocketsViewer
 
 
             var tps = NetProcessAPI.GetAllTcpConnections();
-
             var ups = NetProcessAPI.GetAllUdpConnections();
 
             dataGridView1.Rows.Clear();
 
             foreach (var p in tps)
             {
-                if (!string.IsNullOrEmpty(pName) && ProcessAPI.GetProcessNameByPID(p.owningPid).IndexOf(pName, StringComparison.OrdinalIgnoreCase) == -1)
+                var processName = ProcessAPI.GetProcessNameByPID(p.owningPid);
+
+                if (!string.IsNullOrEmpty(pName) && processName?.IndexOf(pName, StringComparison.OrdinalIgnoreCase) == -1)
                 {
                     continue;
-                }
+                }                
                 if (!string.IsNullOrEmpty(lIp) && p.LocalAddress.ToString() != lIp)
                 {
                     continue;
@@ -112,19 +123,32 @@ namespace SocketsViewer
                     continue;
                 }
 
-                dataGridView1.Rows.Add(new object[] { p.owningPid.ToString(), ProcessAPI.GetIcon(p.owningPid, true), ProcessAPI.GetProcessNameByPID(p.owningPid), "TCP", p.LocalAddress.ToString(), p.LocalPort.ToString(), p.RemoteAddress.ToString(), p.RemotePort.ToString() });
-            }
+                if (!string.IsNullOrEmpty(processName) && (processName.ToLower() == "system" || processName.ToLower() == "idle"))
+                {
+                    continue;
+                }
 
+                dataGridView1.Rows.Add(new object[] { p.owningPid.ToString(), ProcessAPI.GetIcon(p.owningPid, true), processName, "TCP", p.LocalAddress.ToString(), p.LocalPort.ToString(), p.RemoteAddress.ToString(), p.RemotePort.ToString() });
+            }
 
             if (!string.IsNullOrEmpty(rIp) || !string.IsNullOrEmpty(rPort))
             {
+                for (int i = 0; i < dataGridView1.Rows.Count; i++)
+                {
+                    DataGridViewRow r = this.dataGridView1.Rows[i];
+                    r.HeaderCell.Value = string.Format("{0}", i + 1);
+                }
+                this.dataGridView1.Refresh();
                 button1.Enabled = true;
                 return;
             }
 
+            
             foreach (var p in ups)
             {
-                if (!string.IsNullOrEmpty(pName) && ProcessAPI.GetProcessNameByPID(p.owningPid).IndexOf(pName, StringComparison.OrdinalIgnoreCase) == -1)
+                var processName = ProcessAPI.GetProcessNameByPID(p.owningPid);
+
+                if (!string.IsNullOrEmpty(pName) && processName?.IndexOf(pName, StringComparison.OrdinalIgnoreCase) == -1)
                 {
                     continue;
                 }
@@ -135,20 +159,25 @@ namespace SocketsViewer
                 if (!string.IsNullOrEmpty(lPort) && p.LocalPort.ToString() != lPort)
                 {
                     continue;
-                }
+                }                
 
-                dataGridView1.Rows.Add(new object[] { p.owningPid.ToString(), ProcessAPI.GetIcon(p.owningPid, true), ProcessAPI.GetProcessNameByPID(p.owningPid), "UDP", p.LocalAddress.ToString(), p.LocalPort.ToString(), "", "" });
+                if (!string.IsNullOrEmpty(processName) && (processName.ToLower() == "system" || processName.ToLower() == "idle"))
+                {
+                    continue;
+                }
+                dataGridView1.Rows.Add(new object[] { p.owningPid.ToString(), ProcessAPI.GetIcon(p.owningPid, true), processName, "UDP", p.LocalAddress.ToString(), p.LocalPort.ToString(), "", "" });
             }
 
-            for (int i = 0; i < this.dataGridView1.Rows.Count; i++)
+
+            for (int i = 0; i < dataGridView1.Rows.Count; i++)
             {
                 DataGridViewRow r = this.dataGridView1.Rows[i];
                 r.HeaderCell.Value = string.Format("{0}", i + 1);
             }
-
             this.dataGridView1.Refresh();
-
             button1.Enabled = true;
+
+
         }
 
         private void textBox1_KeyUp(object sender, KeyEventArgs e)
@@ -242,15 +271,11 @@ namespace SocketsViewer
 
                             StringBuilder sb = new StringBuilder();
 
-                            sb.AppendLine($"pid：{list[0].Id}\r\n");
-
-                            sb.AppendLine($"pName：{_chooseName}\r\n");
+                            sb.AppendLine($"path：{list[0].FileName}\r\n");
 
                             sb.AppendLine($"active：{StringExtention.ToFormatString(list[0].TotalMilliseconds)}\r\n");
 
                             sb.AppendLine($"mem：{StringExtention.ToFormatString(list[0].WorkingSet64)}\r\n");
-
-                            sb.AppendLine($"path：{list[0].FileName}\r\n");
 
                             sb.AppendLine($"net：{speedStr}/{totalStr}");
 
@@ -258,7 +283,7 @@ namespace SocketsViewer
                             {
                                 this.Invoke(new Action(() =>
                                 {
-                                    label12.Text = sb.ToString();
+                                    textBox7.Text = sb.ToString();
                                 }));
                             }
                             catch { }
@@ -302,6 +327,41 @@ namespace SocketsViewer
             catch { }
             GC.Collect(0);
         }
+
+        #region ContextMenus
+        private void openFilePathToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            try
+            {
+                var pName = dataGridView1.Rows[dataGridView1.SelectedCells[0].RowIndex].Cells[2].Value.ToString();
+                SystemInfo systemInfo = new SystemInfo();
+                var list = systemInfo.GetProcessInfo(pName);
+                var filePath = list[0].FileName;
+                Process.Start("Explorer.exe", $"/select,{filePath}");
+            }
+            catch
+            {
+
+            }            
+        }
+
+        private void endProcessToolStripMenuItem_Click(object sender, EventArgs e)
+        {
+            if (MessageBox.Show(this, "确定要关闭此进程吗？", "SocketsViewer", MessageBoxButtons.YesNo, MessageBoxIcon.Asterisk, MessageBoxDefaultButton.Button2) == DialogResult.Yes)
+            {
+                try
+                {
+                    var row = dataGridView1.Rows[dataGridView1.SelectedCells[0].RowIndex];
+                    var pid = int.Parse(row.Cells[0].Value.ToString());
+                    ProcessAPI.GetProcessByPID(pid).Kill();
+                    dataGridView1.Rows.Remove(row);
+                }
+                catch { }
+                
+            }
+        }
+
+        #endregion
 
 
     }

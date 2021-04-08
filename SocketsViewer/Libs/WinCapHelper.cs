@@ -15,10 +15,11 @@
 *版 本 号： V1.0.0.0
 *描    述：
 *****************************************************************************/
-using SocketsViewer.Model;
 using System;
-using System.Threading;
 using System.Threading.Tasks;
+
+using SocketsViewer.Model;
+
 using Tamir.IPLib;
 using Tamir.IPLib.Packets;
 
@@ -27,7 +28,9 @@ namespace SocketsViewer.Libs
     public class WinCapHelper
     {
         private static object syncObj = new object();
+
         private static WinCapHelper _capInstance;
+
         public static WinCapHelper WinCapInstance
         {
             get
@@ -68,14 +71,22 @@ namespace SocketsViewer.Libs
         {
             Task.Factory.StartNew(() =>
             {
-                ////遍历网卡  
-                foreach (PcapDevice device in NetWorkController.GetList())
+                try
                 {
-                    ////分别启动监听，指定包的处理函数  
-                    device.PcapOnPacketArrival += device_OnPacketArrival;
-                    device.PcapOpen(true, 1000);
-                    device.PcapStartCapture();
+                    ////遍历网卡  
+                    foreach (PcapDevice device in NetWorkController.GetList())
+                    {
+                        try
+                        {
+                            device.PcapOnPacketArrival += device_OnPacketArrival;
+                            device.PcapOpen(true, 1000);
+                            device.PcapStartCapture();
+                        }
+                        catch { }
+
+                    }
                 }
+                catch { }               
             });
         }
 

@@ -62,12 +62,24 @@ namespace SocketsViewer.Libs
 
         public static Icon GetIcon(int pid, bool bSmall)
         {
-
             try
             {
-                var p = System.Diagnostics.Process.GetProcessById(pid);
+                var p = GetProcessByPID(pid);
 
                 return GetIcon(p.MainModule.FileName, bSmall);
+            }
+            catch (Exception ex)
+            {
+                return null;
+            }
+        }
+
+
+        public static Process GetProcessByPID(int processID)
+        {
+            try
+            {
+                return Process.GetProcessById(processID); 
             }
             catch (Exception ex)
             {
@@ -81,8 +93,8 @@ namespace SocketsViewer.Libs
             //could be an error here if the process die before we can get his name
             try
             {
-                Process p = Process.GetProcessById((int)processID);
-                return p.ProcessName;
+                Process p = GetProcessByPID(processID);
+                return p?.ProcessName;
             }
             catch (Exception ex)
             {
